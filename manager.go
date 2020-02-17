@@ -9,22 +9,6 @@ import (
 	"github.com/google/go-github/github"
 )
 
-// PR Handling
-// 1. Every PR which is older than 7 days, summarized in a single Email
-// 2. Every PR which is not updated for more than 14 days will be closed automatically and branch deleted.
-
-// Branch handling
-// 1. Every branch that:
-// - does not have a PR and
-// - without branch protection and
-// - is at least 7 days old
-// will be summarized in the email
-// 2. Every branch that does not have a PR and is at least 14 days old will be deleted after creating a dummy PR
-// - does not have a PR and
-// - without branch protection and
-// - is at least 14 days old
-// will be deleted after creating a dummy PR
-
 // Mail format
 // 1. Mails will be send as a summary per user across PRs and Branches
 // 2. Two sections, one for branches and one for PRs
@@ -49,14 +33,17 @@ type Arguments struct {
 	sendEmails      bool
 	smtpServer      string
 	emailDomain     string
+	alertDays       int
 }
 
 func main() {
 
 	ag := handleArguments()
 
-	userPrs := make(map[string][]*github.PullRequest)
-	userBranches := make(map[string][]*github.Branch)
+	stalePrs := make(map[string][]*github.PullRequest)
+	staleBranches := make(map[string][]*github.Branch)
+	alertPrs := make(map[string][]*github.PullRequest)
+	alertBranches := make(map[string][]*github.Branch)
 
 	client, _ := getGithubClient()
 	orgs := strings.Split(ag.owners, ",")
@@ -67,13 +54,15 @@ func main() {
 		for _, repo := range repos {
 			log.Println("Checking pull-requests under repo:", *repo.Name)
 			pulls, _ := getRepoPulls(client, org, *repo.Name)
-			buildStalePrList(pulls, userPrs)
+			analysePrs(pulls, stalePrs, alertPrs, &ag)
 
 			log.Println("Checking branches under repo:", *repo.Name)
 			branches, _ := getRepoBranches(client, org, *repo.Name)
-			buildStaleBranchList(branches, userBranches)
+			analyseBranches(branches, staleBranches, alertBranches, &ag)
 
 		}
+		log.Println("Stale PRs:", stalePrs)
+		log.Println("Stale Branches:", staleBranches)
 	}
 
 	log.Println("Main complete")
@@ -88,8 +77,9 @@ func handleArguments() Arguments {
 	flag.StringVar(&ag.ignoreBranches, "ignore-branches", "master,develop", "Branches to ignore (comma seperated) (optional)")
 	flag.StringVar(&ag.repoPattern, "repo-pattern", ".*", "Repository pattern to filter repositories (optional)")
 
-	flag.IntVar(&ag.prStaleDays, "pr-stale-days", 7, "Number of inactive days to consider a PR as stale (optional)")
+	flag.IntVar(&ag.prStaleDays, "pr-stale-days", 14, "Number of inactive days to consider a PR as stale (optional)")
 	flag.IntVar(&ag.branchStaleDays, "branch-stale-days", 14, "Number of inactive days to consider a PR as stale (optional)")
+	flag.IntVar(&ag.alertDays, "alert-days", 14, "Number of days in advance to start alerting about stale branches and pull requests (optional)")
 
 	flag.BoolVar(&ag.closePrs, "close-prs", true, "Close the stale pull requests which has crossed the pr-stale-days value")
 	flag.BoolVar(&ag.deleteBranches, "delete-branches", false, "Delete the stale branches which has crossed the branch-stale-days value")
