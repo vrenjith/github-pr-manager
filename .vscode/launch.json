@@ -12,7 +12,9 @@
             "mode": "auto",
             "program": "${fileDirname}",
             "env": {},
-            "args": []
+            "args": ["--detect-jira=false", "--send-emails=true", "--smtp-server=mail.sap.com", 
+                "--email-domain=sap.com", "--owners=Ariba", "--api-url=https://github.wdf.sap.corp/api/v3", 
+                "--token=ee291412d548cfd9c29a7a2185dac2a9001831c5"]
         }
     ]
 }

@@ -3,23 +3,19 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
 
-func getGithubClient() (*github.Client, error) {
-	token := os.Getenv("GITHUB_TOKEN")
-	baseURL := os.Getenv("GITHUB_API_URL")
-
+func getGithubClient(ag Arguments) (*github.Client, error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
+		&oauth2.Token{AccessToken: ag.token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 
-	return github.NewEnterpriseClient(baseURL, baseURL, tc)
+	return github.NewEnterpriseClient(ag.apiURL, ag.apiURL, tc)
 }
 func getOrgRepos(client *github.Client, org string) ([]*github.Repository, error) {
 	var allRepos []*github.Repository

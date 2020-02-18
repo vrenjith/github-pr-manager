@@ -45,7 +45,7 @@ func main() {
 	alertPrs := make(map[string][]*github.PullRequest)
 	alertBranches := make(map[string][]*github.Branch)
 
-	client, _ := getGithubClient()
+	client, _ := getGithubClient(ag)
 	orgs := strings.Split(ag.owners, ",")
 	for _, org := range orgs {
 		log.Println("Checking repositories under org:", org)
@@ -58,11 +58,11 @@ func main() {
 
 			log.Println("Checking branches under repo:", *repo.Name)
 			branches, _ := getRepoBranches(client, org, *repo.Name)
-			analyseBranches(branches, staleBranches, alertBranches, &ag)
+			analyseBranches(client, repo, branches, staleBranches, alertBranches, &ag)
+
+			printSummary(stalePrs, staleBranches, alertPrs, alertBranches)
 
 		}
-		log.Println("Stale PRs:", stalePrs)
-		log.Println("Stale Branches:", staleBranches)
 	}
 
 	log.Println("Main complete")

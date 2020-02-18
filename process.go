@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -45,25 +46,27 @@ func analysePrs(pulls []*github.PullRequest, stale map[string][]*github.PullRequ
 	}
 }
 
-func analyseBranches(branches []*github.Branch, stale map[string][]*github.Branch, alert map[string][]*github.Branch, args *Arguments) {
+func analyseBranches(client *github.Client, repo *github.Repository, branches []*github.Branch,
+	stale map[string][]*github.Branch, alert map[string][]*github.Branch, args *Arguments) {
 	for _, branch := range branches {
 		log.Println("Branch:", *branch.Name)
 
-		durationSinceLastUpdate := int(time.Since(*branch.Commit.Commit.Author.Date).Hours())
+		commit, _, _ := client.Git.GetCommit(context.Background(), *repo.Owner.Login, *repo.Name, *branch.Commit.SHA)
+
+		durationSinceLastUpdate := int(time.Since(*commit.Author.Date).Hours())
 
 		if durationSinceLastUpdate > args.branchStaleDays*24 {
-			userbranches, ok := stale[*branch.Commit.Author.Login]
+			userbranches, ok := stale[*commit.Author.Login]
 			if !ok {
 				userbranches = make([]*github.Branch, 0)
 			}
-			stale[*branch.Commit.Author.Login] = append(userbranches, branch)
+			stale[*commit.Author.Login] = append(userbranches, branch)
 		} else if durationSinceLastUpdate > (args.branchStaleDays*24 - args.alertDays*24) {
-			userbranches, ok := alert[*branch.Commit.Author.Login]
+			userbranches, ok := alert[*commit.Author.Login]
 			if !ok {
 				userbranches = make([]*github.Branch, 0)
 			}
-			alert[*branch.Commit.Author.Login] = append(userbranches, branch)
+			alert[*commit.Author.Login] = append(userbranches, branch)
 		}
 	}
-
 }
