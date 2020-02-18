@@ -46,27 +46,43 @@ func analysePrs(pulls []*github.PullRequest, stale map[string][]*github.PullRequ
 	}
 }
 
+// Branch is our wrapper for the actual branch
+// that includes the commit details too
+type Branch struct {
+	*github.Branch
+	ExCommit *github.Commit
+}
+
 func analyseBranches(client *github.Client, repo *github.Repository, branches []*github.Branch,
-	stale map[string][]*github.Branch, alert map[string][]*github.Branch, args *Arguments) {
+	stale map[string][]*Branch, alert map[string][]*Branch, args *Arguments) {
 	for _, branch := range branches {
 		log.Println("Branch:", *branch.Name)
 
+		if _, ok := args.ignoreBranchesMap[*branch.Name]; ok {
+			log.Printf("Ignoring branch:", *branch.Name)
+			continue
+		}
+
 		commit, _, _ := client.Git.GetCommit(context.Background(), *repo.Owner.Login, *repo.Name, *branch.Commit.SHA)
+
+		exBranch := Branch{branch, commit}
 
 		durationSinceLastUpdate := int(time.Since(*commit.Author.Date).Hours())
 
+		user := *commit.Committer.Name
+
 		if durationSinceLastUpdate > args.branchStaleDays*24 {
-			userbranches, ok := stale[*commit.Author.Login]
+			userbranches, ok := stale[user]
 			if !ok {
-				userbranches = make([]*github.Branch, 0)
+				userbranches = make([]*Branch, 0)
 			}
-			stale[*commit.Author.Login] = append(userbranches, branch)
+			stale[user] = append(userbranches, &exBranch)
 		} else if durationSinceLastUpdate > (args.branchStaleDays*24 - args.alertDays*24) {
-			userbranches, ok := alert[*commit.Author.Login]
+			userbranches, ok := alert[user]
 			if !ok {
-				userbranches = make([]*github.Branch, 0)
+				userbranches = make([]*Branch, 0)
 			}
-			alert[*commit.Author.Login] = append(userbranches, branch)
+			alert[user] = append(userbranches, &exBranch)
 		}
 	}
 }

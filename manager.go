@@ -18,22 +18,23 @@ import (
 // Arguments is used to collect all the
 // command line arguments being passed to the utility
 type Arguments struct {
-	owners          string
-	token           string
-	apiURL          string
-	ignoreBranches  string
-	repoPattern     string
-	prStaleDays     int
-	branchStaleDays int
-	closePrs        bool
-	deleteBranches  bool
-	detectJira      bool
-	jiraUserName    string
-	jiraPassword    string
-	sendEmails      bool
-	smtpServer      string
-	emailDomain     string
-	alertDays       int
+	owners            string
+	token             string
+	apiURL            string
+	ignoreBranches    string
+	ignoreBranchesMap map[string]struct{}
+	repoPattern       string
+	prStaleDays       int
+	branchStaleDays   int
+	closePrs          bool
+	deleteBranches    bool
+	detectJira        bool
+	jiraUserName      string
+	jiraPassword      string
+	sendEmails        bool
+	smtpServer        string
+	emailDomain       string
+	alertDays         int
 }
 
 func main() {
@@ -41,9 +42,9 @@ func main() {
 	ag := handleArguments()
 
 	stalePrs := make(map[string][]*github.PullRequest)
-	staleBranches := make(map[string][]*github.Branch)
+	staleBranches := make(map[string][]*Branch)
 	alertPrs := make(map[string][]*github.PullRequest)
-	alertBranches := make(map[string][]*github.Branch)
+	alertBranches := make(map[string][]*Branch)
 
 	client, _ := getGithubClient(ag)
 	orgs := strings.Split(ag.owners, ",")
@@ -59,11 +60,9 @@ func main() {
 			log.Println("Checking branches under repo:", *repo.Name)
 			branches, _ := getRepoBranches(client, org, *repo.Name)
 			analyseBranches(client, repo, branches, staleBranches, alertBranches, &ag)
-
-			printSummary(stalePrs, staleBranches, alertPrs, alertBranches)
-
 		}
 	}
+	printSummary(stalePrs, staleBranches, alertPrs, alertBranches)
 
 	log.Println("Main complete")
 }
@@ -107,6 +106,11 @@ func handleArguments() Arguments {
 	}
 	if len(ag.owners) == 0 {
 		logAndExit("Github organizations/owners")
+	}
+	//https://www.davidkaya.com/sets-in-golang/
+	ag.ignoreBranchesMap = make(map[string]struct{})
+	for _, branch := range strings.Split(ag.ignoreBranches, ",") {
+		ag.ignoreBranchesMap[branch] = struct{}{}
 	}
 	return ag
 }
