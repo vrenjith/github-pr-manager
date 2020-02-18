@@ -29,19 +29,20 @@ func analysePrs(pulls []*github.PullRequest, stale map[string][]*github.PullRequ
 		log.Println("Pull:", *pull.ID, *pull.Number, *pull.Title)
 
 		durationSinceLastUpdate := int(time.Since(*pull.UpdatedAt).Hours())
+		user := *pull.User.Login
 
 		if durationSinceLastUpdate > args.prStaleDays*24 {
-			userprs, ok := stale[*pull.User.Login]
+			userprs, ok := stale[user]
 			if !ok {
 				userprs = make([]*github.PullRequest, 0)
 			}
-			stale[*pull.User.Login] = append(userprs, pull)
+			stale[user] = append(userprs, pull)
 		} else if durationSinceLastUpdate > (args.prStaleDays*24 - args.alertDays*24) {
-			userprs, ok := alert[*pull.User.Login]
+			userprs, ok := alert[user]
 			if !ok {
 				userprs = make([]*github.PullRequest, 0)
 			}
-			alert[*pull.User.Login] = append(userprs, pull)
+			alert[user] = append(userprs, pull)
 		}
 	}
 }
@@ -74,8 +75,7 @@ func analyseBranches(client *github.Client, repo *github.Repository, branches []
 
 		durationSinceLastUpdate := int(time.Since(*commit.Author.Date).Hours())
 
-		//user := *commit.Committer.Name
-		user := *commit.Author.Name
+		user := *commit.Author.Email
 
 		if durationSinceLastUpdate > args.branchStaleDays*24 {
 			userbranches, ok := stale[user]
