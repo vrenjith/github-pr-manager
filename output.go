@@ -42,7 +42,7 @@ func printSummary(stalePrs map[string][]*github.PullRequest, staleBranches map[s
 
 	for user, branches := range staleBranches {
 		for _, branch := range branches {
-			table.Append([]string{user, *branch.Name, branch.ExCommit.Committer.Date.String(), *branch.Commit.HTMLURL})
+			table.Append([]string{user, *branch.Name, branch.ExCommit.Committer.Date.String(), *branch.Commit.URL})
 		}
 	}
 	log.Printf("3. Stale Branches")
@@ -54,7 +54,7 @@ func printSummary(stalePrs map[string][]*github.PullRequest, staleBranches map[s
 
 	for user, branches := range alertBranches {
 		for _, branch := range branches {
-			table.Append([]string{user, *branch.Name, branch.ExCommit.Committer.Date.String(), *branch.Commit.HTMLURL})
+			table.Append([]string{user, *branch.Name, branch.ExCommit.Committer.Date.String(), *branch.Commit.URL})
 		}
 	}
 	log.Printf("4. Branches reaching stale")

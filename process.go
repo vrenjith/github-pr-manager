@@ -59,7 +59,12 @@ func analyseBranches(client *github.Client, repo *github.Repository, branches []
 		log.Println("Branch:", *branch.Name)
 
 		if _, ok := args.ignoreBranchesMap[*branch.Name]; ok {
-			log.Printf("Ignoring branch:", *branch.Name)
+			log.Println("Ignoring branch:", *branch.Name)
+			continue
+		}
+
+		if *branch.Protected {
+			log.Println("Ignoring protected branch:", *branch.Name)
 			continue
 		}
 
@@ -69,7 +74,8 @@ func analyseBranches(client *github.Client, repo *github.Repository, branches []
 
 		durationSinceLastUpdate := int(time.Since(*commit.Author.Date).Hours())
 
-		user := *commit.Committer.Name
+		//user := *commit.Committer.Name
+		user := *commit.Author.Name
 
 		if durationSinceLastUpdate > args.branchStaleDays*24 {
 			userbranches, ok := stale[user]
