@@ -35,6 +35,8 @@ type Arguments struct {
 	smtpServer        string
 	emailDomain       string
 	alertDays         int
+	adminEmail        string
+	fromEmail         string
 }
 
 func main() {
@@ -64,6 +66,8 @@ func main() {
 	}
 	printSummary(stalePrs, staleBranches, alertPrs, alertBranches)
 
+	emailSummary(ag, stalePrs, staleBranches, alertPrs, alertBranches)
+
 	log.Println("Main complete")
 }
 
@@ -86,6 +90,8 @@ func handleArguments() Arguments {
 	flag.BoolVar(&ag.sendEmails, "send-emails", false, "Send summary emails to each committer about stale pull requests and branches")
 	flag.StringVar(&ag.smtpServer, "smtp-server", "", "SMTP Server to use (authentication not supported) (optional) (Mandatory if send-emails is set to true)")
 	flag.StringVar(&ag.emailDomain, "email-domain", "", "Email domain to be used (optional)(Mandatory if send-emails is set to true)")
+	flag.StringVar(&ag.adminEmail, "admin-email", "", "Email address of the admin who will receive all emails. (optional)(Mandatory if send-emails is set to true)")
+	flag.StringVar(&ag.fromEmail, "from-email", "", "From email address for all emails. (optional)(Mandatory if send-emails is set to true)")
 
 	flag.StringVar(&ag.jiraUserName, "jira-user-name", os.Getenv("JIRA_USERNAME"), "JIRA user name for commenting (optional)(Mandatory if detect-jira is set to true)(respects JIRA_USERNAME environment variable)")
 	flag.StringVar(&ag.jiraPassword, "jira-password", os.Getenv("JIRA_PASSWORD"), "JIRA password for commenting (optional)(Mandatory if detect-jira is set to true)(respects JIRA_PASSWORD environment variable)")
@@ -101,8 +107,17 @@ func handleArguments() Arguments {
 	if ag.detectJira && (len(ag.jiraUserName) == 0 || len(ag.jiraPassword) == 0) {
 		logAndExit("JIRA User name and password")
 	}
-	if ag.sendEmails && (len(ag.smtpServer) == 0 || len(ag.emailDomain) == 0) {
-		logAndExit("SMTP Server and Email Domain")
+	if ag.sendEmails && len(ag.smtpServer) == 0 {
+		logAndExit("SMTP Server")
+	}
+	if ag.sendEmails && len(ag.emailDomain) == 0 {
+		logAndExit("Email Domain")
+	}
+	if ag.sendEmails && len(ag.adminEmail) == 0 {
+		logAndExit("Administrator Email")
+	}
+	if ag.sendEmails && len(ag.fromEmail) == 0 {
+		logAndExit("From Email")
 	}
 	if len(ag.owners) == 0 {
 		logAndExit("Github organizations/owners")
